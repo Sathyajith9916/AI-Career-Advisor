@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AI Career Advisor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Calm Harmony -->
+    <!-- Application Structure Plan: The application is designed as an interactive dashboard. The structure begins with user input controls at the top, which act as the primary filters for the 'report'. Upon submission, the page dynamically generates a results dashboard below. This dashboard is split into two main sections: 1) A 'Quick Comparison' view featuring a bar chart for at-a-glance salary analysis, and 2) A 'Detailed Exploration' section using a tabbed interface. This structure was chosen to facilitate a natural user flow from high-level comparison to in-depth analysis of each career option, preventing information overload while empowering the user to explore the AI-generated data effectively. -->
+    <!-- Visualization & Content Choices: 1) Report Info: Salary Expectations (Quantitative Range) -> Goal: Compare -> Viz: Grouped Bar Chart -> Interaction: Hover tooltips for precise values -> Justification: Provides the clearest, most immediate visual comparison of financial potential. -> Library: Chart.js (Canvas). 2) Report Info: Three distinct career recommendations (Qualitative objects) -> Goal: Organize & Inform -> Viz: Tabbed Interface -> Interaction: Click tabs to switch between detailed career path views -> Justification: Manages complex information by showing only one detailed recommendation at a time, keeping the UI clean and focused. -> Library/Method: HTML/CSS/JS. 3) Report Info: Skills & Job Roles (Qualitative Lists) -> Goal: Inform -> Viz: Styled Lists within Tabs -> Interaction: None (static display for clarity) -> Justification: Simple lists are the most direct way to present this scannable information. -> Library/Method: HTML/Tailwind. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f7f4;
+            color: #4a4a4a;
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: auto;
+        }
+        .card {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+            border: 1px solid #e5e7eb;
+        }
+        .form-input, .form-select {
+            border: 1px solid #d1d5db;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus, .form-select:focus {
+            ring: 2px;
+            ring-color: #a5b4fc;
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px #c7d2fe;
+        }
+        .submit-btn {
+            background-color: #4f46e5;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .submit-btn:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+        }
+        .submit-btn:disabled {
+            background-color: #a5b4fc;
+            cursor: not-allowed;
+        }
+        .loader {
+            border: 4px solid #e5e7eb;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tab-btn {
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .tab-btn.active {
+            color: #4f46e5;
+            font-weight: 600;
+            border-bottom-color: #4f46e5;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-6 md:p-8">
+
+    <div class="main-container">
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-3xl md:text-5xl font-bold text-gray-800">AI Career Advisor Dashboard</h1>
+            <p class="text-gray-600 mt-3 text-lg">Input your profile to generate an interactive report of your potential career paths.</p>
+        </header>
+
+        <section id="input-section" class="card p-6 md:p-8">
+            <form id="career-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div class="md:col-span-1">
+                    <label for="interests" class="block text-sm font-medium text-gray-700 mb-2">Your Interests</label>
+                    <input type="text" id="interests" name="interests" required class="w-full px-4 py-2 rounded-lg form-input" placeholder="e.g., AI, Design, Finance">
+                </div>
+                <div class="md:col-span-1">
+                    <label for="skills" class="block text-sm font-medium text-gray-700 mb-2">Your Skills</label>
+                    <input type="text" id="skills" name="skills" required class="w-full px-4 py-2 rounded-lg form-input" placeholder="e.g., Python, Communication">
+                </div>
+                <div class="md:col-span-1">
+                    <label for="academics" class="block text-sm font-medium text-gray-700 mb-2">Academic Stream</label>
+                    <select id="academics" name="academics" required class="w-full px-4 py-2 rounded-lg form-select">
+                        <option value="" disabled selected>Select your stream</option>
+                        <option value="Science (PCM)">Science (PCM)</option>
+                        <option value="Science (PCB)">Science (PCB)</option>
+                        <option value="Commerce">Commerce</option>
+                        <option value="Arts/Humanities">Arts/Humanities</option>
+                        <option value="Engineering (CSE)">Engineering (Computer Science)</option>
+                        <option value="Engineering (Other)">Engineering (Other Branch)</option>
+                        <option value="BCA/MCA">BCA/MCA</option>
+                        <option value="BBA/MBA">BBA/MBA</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="md:col-span-3 text-center mt-4">
+                    <button type="submit" id="submit-button" class="submit-btn text-white font-semibold px-10 py-3 rounded-lg w-full sm:w-auto">
+                        Generate My Interactive Report
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <section id="results-section" class="mt-10 md:mt-12 hidden">
+            <div id="loader" class="flex justify-center items-center py-16">
+                <div class="loader"></div>
+            </div>
+            <div id="error-message" class="hidden text-center p-6 card bg-red-50 text-red-700"></div>
+            
+            <div id="report-content" class="hidden space-y-10">
+                <div id="comparison-section" class="card p-6 md:p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 text-center">Quick Comparison: Salary Expectations</h2>
+                    <p class="text-center text-gray-600 mt-2 mb-6">This chart compares the estimated starting salary ranges (in INR Lakhs Per Annum) for your recommended career paths. Hover over the bars for precise values.</p>
+                    <div class="chart-container">
+                        <canvas id="salaryChart"></canvas>
+                    </div>
+                </div>
+
+                <div id="details-section" class="card p-6 md:p-8">
+                     <h2 class="text-2xl font-bold text-gray-800 text-center">Detailed Exploration</h2>
+                     <p class="text-center text-gray-600 mt-2 mb-8">Select a career path below to dive into the specifics, including a description, required skills, and your first learning step.</p>
+                     <div id="tabs-container" class="border-b border-gray-200 mb-6">
+                        <nav id="tab-buttons" class="flex justify-center -mb-px space-x-6" aria-label="Tabs"></nav>
+                     </div>
+                     <div id="tab-contents"></div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const form = document.getElementById('career-form');
+        const submitButton = document.getElementById('submit-button');
+        const resultsSection = document.getElementById('results-section');
+        const loader = document.getElementById('loader');
+        const errorMessageDiv = document.getElementById('error-message');
+        const reportContent = document.getElementById('report-content');
+        
+        const salaryChartCanvas = document.getElementById('salaryChart');
+        const tabButtonsContainer = document.getElementById('tab-buttons');
+        const tabContentsContainer = document.getElementById('tab-contents');
+        
+        let salaryChart = null;
+        let apiData = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            submitButton.disabled = true;
+            submitButton.textContent = 'Generating...';
+            
+            resultsSection.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            reportContent.classList.add('hidden');
+            errorMessageDiv.classList.add('hidden');
+
+            const formData = new FormData(form);
+            const data = {
+                interests: formData.get('interests'),
+                skills: formData.get('skills'),
+                academics: formData.get('academics')
+            };
+
+            try {
+                // This is a mock API call for front-end demonstration.
+                // In a real application, this would fetch from the live back-end.
+                await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+                
+                const mockRecommendations = [
+                    {
+                        "career_path": "AI/ML Engineer",
+                        "description": "A strong fit given your interest in AI and skills in Python. This field is booming in India with the 'Digital India' initiative.",
+                        "skills_required": ["Python", "TensorFlow/PyTorch", "Data Structures", "Algorithms", "Communication"],
+                        "job_roles": ["Machine Learning Engineer", "Data Scientist", "AI Research Scientist"],
+                        "learning_pathway": "Start with an online course in Machine Learning on SWAYAM or NPTEL.",
+                        "salary_expectations_inr": "₹6.5 - ₹10.0 LPA"
+                    },
+                    {
+                        "career_path": "UX/UI Designer",
+                        "description": "Combines your interest in design with technical skills. The Indian startup ecosystem has a massive demand for user-centric designers.",
+                        "skills_required": ["Figma/Sketch", "User Research", "Prototyping", "Empathy", "Collaboration"],
+                        "job_roles": ["UX Designer", "UI Designer", "Product Designer"],
+                        "learning_pathway": "Create a portfolio by redesigning an app you use daily and document your process.",
+                        "salary_expectations_inr": "₹5.0 - ₹8.5 LPA"
+                    },
+                    {
+                        "career_path": "Fintech Product Analyst",
+                        "description": "A perfect blend of finance and technology. With India's UPI revolution, fintech is a high-growth sector needing skilled analysts.",
+                        "skills_required": ["Data Analysis (SQL)", "Market Research", "Agile Methodology", "Problem-Solving", "Stakeholder Management"],
+                        "job_roles": ["Product Analyst", "Business Analyst", "Data Analyst"],
+                        "learning_pathway": "Analyze a popular fintech app's features and write a case study on potential improvements.",
+                        "salary_expectations_inr": "₹6.0 - ₹9.0 LPA"
+                    }
+                ];
+                
+                if (data.interests.toLowerCase().includes("error")) {
+                    throw new Error("This is a simulated error for testing purposes.");
+                }
+
+                apiData = mockRecommendations;
+                renderReport(apiData);
+
+            } catch (error) {
+                console.error('Error fetching career advice:', error);
+                const userFriendlyError = `Could not generate report. This is a front-end only demo. Error: ${error.message}`;
+                displayError(userFriendlyError);
+            } finally {
+                loader.classList.add('hidden');
+                submitButton.disabled = false;
+                submitButton.textContent = 'Generate My Interactive Report';
+            }
+        });
+
+        function renderReport(data) {
+            if (!data || data.length === 0) {
+                displayError("The AI advisor didn't return any recommendations. Try adjusting your inputs.");
+                return;
+            }
+            reportContent.classList.remove('hidden');
+            renderSalaryChart(data);
+            renderTabs(data);
+        }
+
+        function parseSalary(salaryStr) {
+            const matches = salaryStr.match(/[\d.]+/g);
+            return matches ? matches.map(Number) : [0, 0];
+        }
+
+        function renderSalaryChart(data) {
+            const labels = data.map(rec => rec.career_path);
+            const salaryRanges = data.map(rec => parseSalary(rec.salary_expectations_inr));
+            
+            const lowSalaries = salaryRanges.map(range => range[0]);
+            const highSalaries = salaryRanges.map(range => range[1]);
+
+            if (salaryChart) {
+                salaryChart.destroy();
+            }
+
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: 'Starting Salary (Low End)',
+                    data: lowSalaries,
+                    backgroundColor: 'rgba(79, 70, 229, 0.6)',
+                    borderColor: 'rgba(79, 70, 229, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }, {
+                    label: 'Starting Salary (High End)',
+                    data: highSalaries,
+                    backgroundColor: 'rgba(165, 180, 252, 0.6)',
+                    borderColor: 'rgba(165, 180, 252, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }]
+            };
+
+            salaryChart = new Chart(salaryChartCanvas, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += `₹${context.parsed.y} LPA`;
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Salary (in Lakhs per Annum)'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                callback: function(value, index, values) {
+                                    const label = this.getLabelForValue(value);
+                                    return label.length > 16 ? label.substring(0, 16) + '...' : label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderTabs(data) {
+            tabButtonsContainer.innerHTML = '';
+            tabContentsContainer.innerHTML = '';
+
+            data.forEach((rec, index) => {
+                const button = document.createElement('button');
+                button.className = `tab-btn py-4 px-1 text-center text-sm font-medium ${index === 0 ? 'active' : ''}`;
+                button.textContent = rec.career_path;
+                button.setAttribute('data-index', index);
+                tabButtonsContainer.appendChild(button);
+
+                const content = document.createElement('div');
+                content.id = `tab-content-${index}`;
+                content.className = `space-y-6 ${index === 0 ? '' : 'hidden'}`;
+                content.innerHTML = `
+                    <p class="text-gray-700 text-lg">${rec.description}</p>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-800 text-lg">Key Skills to Develop</h4>
+                            <ul class="list-disc list-inside mt-2 text-gray-600 space-y-1 pl-2">
+                                ${rec.skills_required.map(skill => `<li>${skill}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-gray-800 text-lg">Potential Job Roles</h4>
+                             <p class="text-gray-600 mt-2">${rec.job_roles.join(', ')}</p>
+                        </div>
+                    </div>
+                    <div class="bg-indigo-50 p-5 rounded-lg border border-indigo-200">
+                       <h4 class="font-semibold text-gray-800 text-lg">🚀 Your First Step (Learning Pathway)</h4>
+                       <p class="text-gray-700 mt-1">${rec.learning_pathway}</p>
+                    </div>
+                `;
+                tabContentsContainer.appendChild(content);
+            });
+
+            tabButtonsContainer.addEventListener('click', (e) => {
+                if (e.target.matches('.tab-btn')) {
+                    const index = e.target.getAttribute('data-index');
+                    
+                    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    document.querySelectorAll('[id^="tab-content-"]').forEach(content => content.classList.add('hidden'));
+                    document.getElementById(`tab-content-${index}`).classList.remove('hidden');
+                }
+            });
+        }
+
+        function displayError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+            reportContent.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
